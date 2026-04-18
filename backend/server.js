@@ -36,7 +36,9 @@ Construct accurate JOINs based on standard clinical logic using ONLY these speci
 
 FORMATTING RULE: You must return ONLY the raw SQL string. Do NOT use markdown formatting (no \`\`\`sql tags). Do NOT include any explanations.
 
-SECURITY RULE: You are strictly limited to 'SELECT' statements. If a prompt requires altering data, return exactly 'ERROR: UNAUTHORIZED'.`
+SECURITY RULE: You are strictly limited to 'SELECT' statements. If a prompt requires altering data, return exactly 'ERROR: UNAUTHORIZED'.
+
+CRITICAL SYNTAX RULE: You must always include a space before and after every SQL keyword (SELECT, FROM, JOIN, ON, WHERE, AND). Never concatenate a table alias with a keyword. For example, use 'Patients p JOIN' instead of 'pJOIN'.`
 });
 
 /**
@@ -141,6 +143,7 @@ app.post('/api/query', async (req, res) => {
   console.log("🛎️  NEW REQUEST RECEIVED AT /api/query");
   console.log("Body payload:", req.body);
 
+  let cleanedSQL = '';
   try {
     const userPrompt = req.body.prompt;
     if (!userPrompt) {
@@ -160,25 +163,27 @@ app.post('/api/query', async (req, res) => {
     }
 
     // 3. Execution (Safe SELECT only)
-    const [rows] = await db.query(sqlString);
+    cleanedSQL = sqlString
+      .replace(/FROM/gi, ' FROM ')
+      .replace(/JOIN/gi, ' JOIN ')
+      .replace(/WHERE/gi, ' WHERE ')
+      .replace(/AND/gi, ' AND ')
+      .replace(/\s+/g, ' ') // Collapse multiple spaces into one
+      .trim();
+
+    const [rows] = await db.query(cleanedSQL);
 
     // 4. Response with visual delay for frontend animation
     setTimeout(() => {
-      res.status(200).json({ success: true, query: sqlString, data: rows });
+      res.status(200).json({ success: true, query: cleanedSQL, data: rows });
     }, 1500);
 
     console.log("✅ Request completed successfully.");
 
   } catch (error) {
-    // 2. THE ERROR MEGAPHONE: This forces the terminal to print the crash
-    console.error("🚨 CRASH IN /api/query 🚨");
-    console.error("Error Message:", error.message);
-    console.error("Full Stack Trace:", error);
-
-    res.status(500).json({
-      error: 'AI SQL translation or execution failed.',
-      details: error.message
-    });
+    console.error("FAILED SQL QUERY:", cleanedSQL);
+    console.error("MYSQL ERROR:", error.sqlMessage || error.message);
+    res.status(500).json({ error: "SQL Syntax Error", details: error.sqlMessage });
   }
 });
 
