@@ -9,7 +9,8 @@ const app = express();
 app.use(cors({
     origin: [
         'http://localhost:5173', 
-        'https://carecore-production.vercel.app' // Placeholder: We will update this later
+        'https://carecore.dpdns.org', 
+        'https://carecore-production.vercel.app'
     ],
     methods: ['POST', 'GET', 'OPTIONS'],
     credentials: true

@@ -145,7 +145,7 @@ export default function LandingPage() {
     setIsLoading(true);
     
     try {
-      const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      const API_URL = import.meta.env.VITE_BACKEND_URL?.replace(/\/$/, '') || 'http://localhost:5000';
       const response = await fetch(`${API_URL}/api/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
