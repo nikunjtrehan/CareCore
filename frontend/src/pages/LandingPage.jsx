@@ -1,7 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useScroll, useSpring, useMotionValueEvent, useTransform, motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../components/GlassCard';
 import CanvasSequence from '../components/CanvasSequence';
+import FAQWithSpiral from '../components/FAQWithSpiral';
+import TestimonialsSection from '../components/TestimonialsSection';
+import { LiquidButton } from '../components/ui/liquid-button';
 
 // ─── Custom Cursor ──────────────────────────────────────────────────────────
 function CustomCursor() {
@@ -94,6 +98,7 @@ function TopoCanvas() {
 
 // ─── Landing Page ────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const navigate  = useNavigate();
   const trackRef = useRef(null);
 
   // Raw scroll progress — untouched, exactly as specified
@@ -176,6 +181,7 @@ export default function LandingPage() {
   };
 
   return (
+    <div style={{ cursor: 'none' }}>
     <>
       {/* ── Layer -10: Topography canvas ── */}
       <TopoCanvas />
@@ -183,20 +189,47 @@ export default function LandingPage() {
       {/* ── Layer 9999: Custom cursor ── */}
       <CustomCursor />
 
-      {/* ── Layer 50: Logo — fixed top-left ── */}
-      <div className="fixed top-6 left-6 z-50 pointer-events-auto">
-        <img
-          src="/carecore-logo.png"
-          alt="CareCore"
-          className="h-12 w-auto object-contain drop-shadow-md"
-          onError={(e) => {
-            e.target.replaceWith(Object.assign(document.createElement('span'), {
-              className: 'font-mono text-2xl font-bold text-[#1F2937]',
-              innerHTML: 'Care<span style="color:#ef4444">Core</span>',
-            }));
+      {/* ── Fixed Navbar ── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 pointer-events-auto">
+        <div
+          className="mx-4 mt-4 rounded-2xl flex items-center justify-between px-6 py-3"
+          style={{
+            background: 'rgba(10,10,15,0.55)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
           }}
-        />
-      </div>
+        >
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#ef4444]/20 flex items-center justify-center">
+              <svg className="w-4 h-4 text-[#ef4444]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <span className="font-mono text-base font-bold text-white tracking-tight">CareCore.</span>
+          </div>
+
+          {/* Nav links */}
+          <div className="hidden md:flex items-center gap-8">
+            <button className="text-sm text-white/50 hover:text-white transition-colors font-medium">Home</button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/auth')}
+              className="hidden sm:block text-sm font-medium text-white/60 hover:text-white transition-colors px-4 py-2 rounded-xl border border-white/10 hover:border-white/30"
+            >
+              Sign In
+            </button>
+            <LiquidButton onClick={() => navigate('/auth')}>
+              Get Started
+            </LiquidButton>
+          </div>
+        </div>
+      </nav>
 
       {/*
         ─────────────────────────────────────────────────────────────────
@@ -282,49 +315,40 @@ export default function LandingPage() {
 
           </div>{/* /sticky */}
 
-          {/*
-            ─────────────────────────────────────────────────────────────────
-            Stage 8: CTA SECTION
-            Lives at the absolute bottom of the 800vh track (outside sticky).
-            The sticky viewport covers 100vh; this section fills the final
-            viewport of the remaining track space.
-            ─────────────────────────────────────────────────────────────────
-          */}
+          {/* ── CTA / FAQ / Testimonials section ── */}
           <div
-            className="absolute bottom-0 left-0 right-0 h-screen flex flex-col items-center justify-center gap-8 px-6 backdrop-blur-md bg-[#FDFCF8]/90"
+            className="absolute bottom-0 left-0 right-0 h-screen flex flex-col items-center justify-center gap-6 px-6 backdrop-blur-md bg-[#FDFCF8]/90"
             style={{ zIndex: 20 }}
           >
-            {/* Heading */}
             <h2 className="font-mono text-4xl md:text-5xl font-bold text-[#1F2937] text-center max-w-2xl leading-tight">
               Ready to see it work.
             </h2>
             <p className="font-sans text-lg text-[#1F2937]/70 text-center max-w-lg">
               Request a demo and watch clinical intelligence become real in your hands.
             </p>
-
-            {/* The Morph Engine */}
-            <AnimatePresence mode="wait">
-              {!isCommandActive ? (
-                /* ── Resting State: Red pill button ── */
-                <motion.button
-                  key="cmd-btn"
-                  layoutId="cmd"
-                  onClick={() => setIsCommandActive(true)}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 22 }}
-                  className="px-10 py-5 rounded-full bg-[#ef4444] text-white font-mono font-bold tracking-widest uppercase"
-                  style={{ boxShadow: '0 0 36px rgba(239,68,68,0.5)' }}
-                >
-                  Initialize Command Center
-                </motion.button>
-              ) : null}
-            </AnimatePresence>
+            <button
+              onClick={() => navigate('/auth')}
+              className="px-10 py-4 rounded-full bg-[#ef4444] text-white font-mono font-bold tracking-widest uppercase hover:brightness-110 transition-all"
+              style={{ boxShadow: '0 0 36px rgba(239,68,68,0.5)' }}
+            >
+              Get Started →
+            </button>
+            <button
+              onClick={() => navigate('/auth')}
+              className="font-mono text-sm text-[#1F2937]/50 hover:text-[#1F2937] underline underline-offset-4 transition-colors"
+            >
+              Already have an account? Sign In
+            </button>
           </div>
 
         </div>{/* /track */}
       </main>
+
+      {/* ── Testimonials ── */}
+      <TestimonialsSection />
+
+      {/* ── FAQ ── */}
+      <FAQWithSpiral />
 
       {/*
         ─────────────────────────────────────────────────────────────────
@@ -468,5 +492,6 @@ export default function LandingPage() {
         )}
       </AnimatePresence>
     </>
+    </div>
   );
 }

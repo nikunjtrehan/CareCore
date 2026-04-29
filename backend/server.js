@@ -8,11 +8,15 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const app = express();
 app.use(cors({
     origin: [
-        'http://localhost:5173', 
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+        'http://localhost:5176',
+        'http://localhost:5177',
         'https://carecore.dpdns.org', 
         'https://carecore-production.vercel.app'
     ],
-    methods: ['POST', 'GET', 'OPTIONS'],
+    methods: ['POST', 'GET', 'DELETE', 'OPTIONS'],
     credentials: true
 }));
 app.use(express.json());
@@ -185,6 +189,109 @@ app.post('/api/query', async (req, res) => {
     console.error("MYSQL ERROR:", error.sqlMessage || error.message);
     res.status(500).json({ error: "SQL Syntax Error", details: error.sqlMessage });
   }
+});
+
+// ── Medical Records: DDownload upload/delete ──────────────────────────────────
+const multer  = require('multer');
+const FormData = require('form-data');
+const axios   = require('axios');
+
+const DDKEY = process.env.DDOWNLOAD_API_KEY;
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'image/jpeg', 'image/png', 'image/webp',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+];
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_TYPES.includes(file.mimetype)) cb(null, true);
+    else cb(new Error(`File type "${file.mimetype}" is not allowed.`));
+  },
+});
+
+// POST /api/records/upload
+app.post('/api/records/upload', upload.single('file'), async (req, res) => {
+  console.log('[Upload] Handler reached. req.file:', req.file ? req.file.originalname : 'MISSING');
+  if (!req.file) return res.status(400).json({ error: 'No file provided.' });
+
+  try {
+    // Step 1: Get upload server
+    console.log('[Upload] Step 1: Getting upload server. DDKEY set:', !!DDKEY);
+    const serverRes = await axios.get(
+      `https://api-v2.ddownload.com/api/upload/server?key=${DDKEY}`
+    );
+    console.log('[Upload] Step 1 done:', JSON.stringify(serverRes.data));
+
+    const uploadUrl = serverRes.data.result;   // direct string URL
+    const sess_id   = serverRes.data.sess_id;  // top-level
+    console.log('[Upload] uploadUrl:', uploadUrl, '| sess_id set:', !!sess_id);
+
+    if (!uploadUrl || !sess_id) {
+      return res.status(502).json({ error: 'Could not get upload URL from DDownload.' });
+    }
+
+    // Step 2: Upload file to DDownload
+    console.log('[Upload] Step 2: Uploading', req.file.originalname, 'to DDownload...');
+    const form = new FormData();
+    form.append('sess_id', sess_id);
+    form.append('file', req.file.buffer, {
+      filename:    req.file.originalname,
+      contentType: req.file.mimetype,
+      knownLength: req.file.size,
+    });
+
+    const uploadRes = await axios.post(uploadUrl, form, {
+      headers: form.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength:    Infinity,
+    });
+    console.log('[Upload] Step 2 done:', JSON.stringify(uploadRes.data));
+
+    // DDownload returns an ARRAY directly: [{ file_code, file_status }]
+    const arr      = Array.isArray(uploadRes.data) ? uploadRes.data : uploadRes.data?.files;
+    const uploaded = arr?.[0];
+    if (!uploaded?.file_code) {
+      return res.status(502).json({ error: 'DDownload did not return a file code.' });
+    }
+
+    const file_code = uploaded.file_code;
+    console.log('[Upload] file_code:', file_code);
+
+    // Step 3: Make file private
+    await axios.get(
+      `https://api-v2.ddownload.com/api/file/set_property?key=${DDKEY}&file_code=${file_code}&public=0`
+    ).catch(() => {});
+
+    res.json({
+      file_code,
+      name:         req.file.originalname,
+      size:         req.file.size,
+      type:         req.file.mimetype,
+      download_url: `https://ddownload.com/${file_code}`,
+      uploadedAt:   new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[Upload] CATCH - error name:', err.name, '| message:', err.message);
+    console.error('[Upload] Stack:', err.stack?.split('\n').slice(0,3).join(' | '));
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// DELETE /api/records/:file_code  (DDownload doesn't have a delete API — we just acknowledge)
+// The real deletion reference is managed in Firestore on the frontend.
+app.delete('/api/records/:file_code', async (_req, res) => {
+  // DDownload free API has no delete endpoint — file stays in the account storage
+  // but we remove it from Firestore so the patient can no longer see it.
+  res.json({ ok: true });
 });
 
 const PORT = process.env.PORT || 5000;

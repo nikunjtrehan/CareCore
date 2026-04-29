@@ -10,13 +10,15 @@
 
 @layer base {
   html, body, #root {
-    background-color: #FDFCF8 !important;
+    /* No !important — dark pages (AuthPage, dashboards) can override with bg-black / bg-[#0a0a0f] */
+    background-color: #FDFCF8;
     color: #1F2937;
     font-family: "Inter", sans-serif;
     margin: 0;
     padding: 0;
     overflow-x: clip;
-    cursor: none;
+    /* cursor:none is re-applied locally by the LandingPage CustomCursor component */
+    cursor: auto;
   }
 
   h1, h2, h3, h4, h5, h6 {
