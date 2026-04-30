@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "CareCore medical platform - backend entrypoint for Railway",
   "scripts": {
-    "start": "cd backend && node server.js",
-    "install-backend": "cd backend && npm install"
+    "build": "cd backend && npm install",
+    "start": "cd backend && node server.js"
   },
   "engines": {
     "node": ">=18.0.0"
