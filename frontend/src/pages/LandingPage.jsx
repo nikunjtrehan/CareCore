@@ -243,7 +243,7 @@ export default function LandingPage() {
         <div ref={trackRef} className="h-[1000vh] w-full relative">
 
           {/* Sticky Viewport: w-full h-screen overflow-hidden relative — z-0 so blend composites against body */}
-          <div className="sticky top-0 w-full h-screen overflow-hidden relative" style={{ zIndex: 0, background: '#FDFCF8' }}>
+          <div className="sticky top-0 w-full h-screen overflow-hidden relative" style={{ zIndex: 0 }}>
 
             {/*
               Video — absolute inset-0, full-bleed.
